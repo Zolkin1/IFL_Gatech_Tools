@@ -1,0 +1,22 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+../inc/simUAV.h
+vector
+-
+
+/home/zach/IFL/IFL_Gatech_Tools/photon_spoofer/app/main.cpp
+iostream
+-
+simUAV.h
+/home/zach/IFL/IFL_Gatech_Tools/photon_spoofer/app/simUAV.h
+vector
+-
+string
+-
+

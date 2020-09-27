@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsimLib.a CMakeFiles/simLib.dir/simUAV.cpp.o
+/usr/bin/ranlib libsimLib.a

@@ -1,0 +1,1 @@
+/usr/bin/c++ CMakeFiles/spoofer.dir/main.cpp.o -o ../../spoofer  ../src/libsimLib.a 
