@@ -130,6 +130,21 @@ depend:
 .PHONY : depend
 
 # Convenience name for target.
+src/CMakeFiles/ubxLib.dir/rule:
+	cd /home/zach/IFL/IFL_Gatech_Tools/photon_spoofer/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 src/CMakeFiles/ubxLib.dir/rule
+.PHONY : src/CMakeFiles/ubxLib.dir/rule
+
+# Convenience name for target.
+ubxLib: src/CMakeFiles/ubxLib.dir/rule
+
+.PHONY : ubxLib
+
+# fast build rule for target.
+ubxLib/fast:
+	cd /home/zach/IFL/IFL_Gatech_Tools/photon_spoofer/build && $(MAKE) $(MAKESILENT) -f src/CMakeFiles/ubxLib.dir/build.make src/CMakeFiles/ubxLib.dir/build
+.PHONY : ubxLib/fast
+
+# Convenience name for target.
 src/CMakeFiles/simLib.dir/rule:
 	cd /home/zach/IFL/IFL_Gatech_Tools/photon_spoofer/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 src/CMakeFiles/simLib.dir/rule
 .PHONY : src/CMakeFiles/simLib.dir/rule
@@ -143,6 +158,33 @@ simLib: src/CMakeFiles/simLib.dir/rule
 simLib/fast:
 	cd /home/zach/IFL/IFL_Gatech_Tools/photon_spoofer/build && $(MAKE) $(MAKESILENT) -f src/CMakeFiles/simLib.dir/build.make src/CMakeFiles/simLib.dir/build
 .PHONY : simLib/fast
+
+UBX.o: UBX.cpp.o
+
+.PHONY : UBX.o
+
+# target to build an object file
+UBX.cpp.o:
+	cd /home/zach/IFL/IFL_Gatech_Tools/photon_spoofer/build && $(MAKE) $(MAKESILENT) -f src/CMakeFiles/ubxLib.dir/build.make src/CMakeFiles/ubxLib.dir/UBX.cpp.o
+.PHONY : UBX.cpp.o
+
+UBX.i: UBX.cpp.i
+
+.PHONY : UBX.i
+
+# target to preprocess a source file
+UBX.cpp.i:
+	cd /home/zach/IFL/IFL_Gatech_Tools/photon_spoofer/build && $(MAKE) $(MAKESILENT) -f src/CMakeFiles/ubxLib.dir/build.make src/CMakeFiles/ubxLib.dir/UBX.cpp.i
+.PHONY : UBX.cpp.i
+
+UBX.s: UBX.cpp.s
+
+.PHONY : UBX.s
+
+# target to generate assembly for a file
+UBX.cpp.s:
+	cd /home/zach/IFL/IFL_Gatech_Tools/photon_spoofer/build && $(MAKE) $(MAKESILENT) -f src/CMakeFiles/ubxLib.dir/build.make src/CMakeFiles/ubxLib.dir/UBX.cpp.s
+.PHONY : UBX.cpp.s
 
 simUAV.o: simUAV.cpp.o
 
@@ -180,6 +222,10 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... simLib"
+	@echo "... ubxLib"
+	@echo "... UBX.o"
+	@echo "... UBX.i"
+	@echo "... UBX.s"
 	@echo "... simUAV.o"
 	@echo "... simUAV.i"
 	@echo "... simUAV.s"

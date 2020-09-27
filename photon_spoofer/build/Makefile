@@ -130,6 +130,19 @@ depend:
 .PHONY : depend
 
 #=============================================================================
+# Target rules for targets named ubxLib
+
+# Build rule for target.
+ubxLib: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 ubxLib
+.PHONY : ubxLib
+
+# fast build rule for target.
+ubxLib/fast:
+	$(MAKE) $(MAKESILENT) -f src/CMakeFiles/ubxLib.dir/build.make src/CMakeFiles/ubxLib.dir/build
+.PHONY : ubxLib/fast
+
+#=============================================================================
 # Target rules for targets named simLib
 
 # Build rule for target.
@@ -165,6 +178,7 @@ help:
 	@echo "... rebuild_cache"
 	@echo "... simLib"
 	@echo "... spoofer"
+	@echo "... ubxLib"
 .PHONY : help
 
 

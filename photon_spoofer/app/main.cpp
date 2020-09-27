@@ -1,5 +1,8 @@
 #include <iostream>
 #include "simUAV.h"
+#include "UBX.h"
+#include "messages.h"
+
 #include <vector>
 #include <string>
 #include <iomanip>
@@ -97,7 +100,7 @@ std::cout << "Please input a starting position (x then y then z)." << std::endl;
 }
 
     std::cout << "\n";    
-    std::cout << "Generating simulated positions... (x, y, z):" << std::endl;
+    std::cout << "Generating simulated positions... x, y, z then lat, lon, h:" << std::endl;
 
     simUAV uav(uavAction, variance, 0, x, y, z, 0.01);
     Geocentric earth(Constants::WGS84_a(), Constants::WGS84_f());
@@ -108,19 +111,31 @@ std::cout << "Please input a starting position (x then y then z)." << std::endl;
     
     double lat, lon, h;
     std::cout << std::left;
-    //std::cout << std::setw(45) <<"Measured UAV Position" << "| LLA Conversion"  <<std::endl;
-    
+
+    UBX ubxMes(message::UBX_NAV_POSLLH);
+
+   // std::cout << std::hex << static_cast<int>(message::UBX_NAV_POSLLH::lengthLeast) << std::endl; 
+
     for (int i = 0; i < 10; i++)
     {
         std::cout << std::setprecision(12);
         std::vector<double> pos = uav.updatePos();
         
         lc.Reverse(pos.at(0), pos.at(1), pos.at(2), lat, lon, h);
-
         std::cout << pos.at(0) << ", " << pos.at(1) << ", "  << std::setw(30) << pos.at(2) << lat << ", " << lon << ", " << h;
         std::cout << std::endl;
+        
+        std::vector<double> lla = {lat, lon, h};
+        
+        // TODO: Convert to ints with the correct scaling     
+        
+        ubxMes.setPackage(temp);
+        ubxMes.serialize();
+        uint8_t* finalMessage = ubxMes.getMessage();
+        
+        // TODO: Print/send the message
     }
 
 // TODO: Implement the conversion to UBX and NMEA (UBX first, see pdf in slack)
-
+    
 }

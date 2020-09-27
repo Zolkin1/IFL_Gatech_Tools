@@ -9,3 +9,4 @@ project(photon_spoofer
 add_subdirectory(src)
 add_subdirectory(app)
 
+set(EXECUTABLE_OUTPUT_PATH ${CMAKE_SOURCE_DIR})

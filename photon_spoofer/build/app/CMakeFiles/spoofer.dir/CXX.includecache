@@ -6,6 +6,16 @@
 
 #IncludeRegexTransform: 
 
+../inc/UBX.h
+cstdint
+-
+vector
+-
+messages.h
+../inc/messages.h
+
+../inc/messages.h
+
 ../inc/simUAV.h
 vector
 -
@@ -15,6 +25,10 @@ iostream
 -
 simUAV.h
 /home/zach/IFL/IFL_Gatech_Tools/photon_spoofer/app/simUAV.h
+UBX.h
+/home/zach/IFL/IFL_Gatech_Tools/photon_spoofer/app/UBX.h
+messages.h
+/home/zach/IFL/IFL_Gatech_Tools/photon_spoofer/app/messages.h
 vector
 -
 string

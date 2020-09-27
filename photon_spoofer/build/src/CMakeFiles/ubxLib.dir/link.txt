@@ -1,0 +1,2 @@
+/usr/bin/ar qc libubxLib.a CMakeFiles/ubxLib.dir/UBX.cpp.o
+/usr/bin/ranlib libubxLib.a

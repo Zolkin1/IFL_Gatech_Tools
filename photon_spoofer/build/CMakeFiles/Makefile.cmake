@@ -51,6 +51,7 @@ set(CMAKE_MAKEFILE_PRODUCTS
 
 # Dependency information for all targets:
 set(CMAKE_DEPEND_INFO_FILES
+  "src/CMakeFiles/ubxLib.dir/DependInfo.cmake"
   "src/CMakeFiles/simLib.dir/DependInfo.cmake"
   "app/CMakeFiles/spoofer.dir/DependInfo.cmake"
   )

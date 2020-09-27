@@ -1,1 +1,1 @@
-/usr/bin/c++ CMakeFiles/spoofer.dir/main.cpp.o -o ../../spoofer  -Wl,-rpath,/usr/local/lib ../src/libsimLib.a /usr/local/lib/libGeographic.so.19.0.1 
+/usr/bin/c++ CMakeFiles/spoofer.dir/main.cpp.o -o spoofer  -Wl,-rpath,/usr/local/lib ../src/libubxLib.a ../src/libsimLib.a /usr/local/lib/libGeographic.so.19.0.1 

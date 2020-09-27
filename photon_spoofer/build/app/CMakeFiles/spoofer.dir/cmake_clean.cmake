@@ -1,7 +1,7 @@
 file(REMOVE_RECURSE
-  "../../spoofer"
-  "../../spoofer.pdb"
   "CMakeFiles/spoofer.dir/main.cpp.o"
+  "spoofer"
+  "spoofer.pdb"
 )
 
 # Per-language clean rules from dependency scanning.
