@@ -33,3 +33,4 @@
 
 # Cmake
 /build*
+photon_spoofer/build*
