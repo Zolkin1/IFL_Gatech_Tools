@@ -6,4 +6,5 @@ target_compile_features(simLib PUBLIC cxx_std_11)
 
 
 add_library(ubxLib UBX.cpp)
+target_compile_options(ubxLib PUBLIC "-g")
 target_include_directories(ubxLib PUBLIC ../inc)

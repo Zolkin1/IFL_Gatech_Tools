@@ -1,61 +1,55 @@
 #include "UBX.h"
+
 #include <vector>
+#include <iostream>
 
-UBX::UBX(message::Message mesType)
+UBX::UBX() 
 {
-    _mesType = mesType;
-    _package = package;
-
-
     _ck_a = 0;
     _ck_b = 0;
-
-    _mesLength = (mesType.lengthSig << 8) | (mesType.lengthLeast);
-    _mes = new uint8_t[_mesLength + 8]; // dynamically allocate space for the message
-
-    serialize();
+    _sync1 = 0xB5;
+    _sync2 = 0x62;
 }
 
-UBX::~UBX()
-{
-    delete _mes;
-}
+UBX::~UBX() {}
 
-uint8_t* UBX::getMessage()
+void UBX::sendMessage(uint8_t classNum, uint8_t id, unsigned int size, void* package)
 {
-    return _mes;
-}
-
-void UBX::updateCheckSum()
-{
-    for (int i = 0; i < _mesLength + 6; i++)
+    _classNum = classNum;
+    _ID = id;
+    
+    _mesLength = size;
+    _lengthSig = (size) & (0xFF00);
+    _lengthLeast = (size) & (0x00FF);
+    std::cout << std::hex; 
+    std::cout << unsigned(_sync1) << " ";
+    _ck_a += _sync1;
+    _ck_b += _ck_a;
+    std::cout << unsigned(_sync2) << " ";
+    _ck_a += _sync2;
+    _ck_b += _ck_a;
+    std::cout << unsigned(_classNum) << " ";
+    _ck_a += _classNum;
+    _ck_b += _ck_a;
+    std::cout << unsigned(_ID) << " ";
+    _ck_a += _ID;
+    _ck_b += _ck_a;
+    std::cout << unsigned(_lengthLeast) << " ";
+    _ck_a += _lengthLeast;
+    _ck_b += _ck_a;
+    std::cout << unsigned(_lengthSig) << " ";
+    _ck_a += _lengthSig;
+    _ck_b += _ck_a;
+    for (int i = 0; i < size/4; i++)
     {
-        _ck_a += _mes[i];
+        // Need to convert to unsigned ints to print with cout - this won't work with messages that have only 1 or 2 bytes, but in the future I won't need to print to the screen. So this shouldn't be an issue
+        std::cout << *((unsigned*)(package)+i) << " ";
+        _ck_a += *((unsigned*)(package)+i);    
         _ck_b += _ck_a;
     }
-}
-
-void UBX::serialize()
-{
-    _mes[0] = _mesType.sync_char1;
-    _mes[1] = _mesType.sync_char2;
-
-    _mes[2] = _mesType.classNum;
-    _mes[3] = _mesType.ID;
-    _mes[4] = _mesType.lengthLeast;
-    _mes[5] = _mesType.lengthSig;
-    
-    for (int i = 0; i < _mesLength; i++)
-    {
-        _mes[6+i] = _package.at(i);
-    }
-
-    updateCheckSum();
-    _mes[6+_mesLength] = _ck_a;
-    _mes[7+_mesLength] = _ck_b;
-}
-
-void UBX::setPackage(std::vector<uint8_t> package)
-{
-    _package = package;
+    std::cout << unsigned(_ck_a) << " ";
+    std::cout << unsigned(_ck_b) << " ";
+    std::cout << std::endl;
+    _ck_a = 0;
+    _ck_b = 0;
 }

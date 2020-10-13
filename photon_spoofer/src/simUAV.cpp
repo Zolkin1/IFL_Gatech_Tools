@@ -25,9 +25,9 @@ std::vector<double> simUAV::updatePos()
     switch (_uavAction)
     {
         case 1:     // Hover
-            temp[0] += distr(generator);
-            temp[1] += distr(generator);
-            temp[2] += distr(generator);
+            temp.at(0) += distr(generator);
+            temp.at(1) += distr(generator);
+            temp.at(2) += distr(generator);
             break;
         default:
             std::cout << "This UAV action is not currently supported." << std::endl;

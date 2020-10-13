@@ -21,25 +21,25 @@
 class UBX
 {
 public:
-    UBX(message::Message mesType);
+    UBX();
     ~UBX();
     
-    void setPackage(std::vector<uint8_t> package);
-    uint8_t* getMessage();
+    void sendMessage(uint8_t classNum, uint8_t id, unsigned int size, void* package);
 
 private:
     // Dynamically allocated array of chars that represent the message
     uint8_t* _mes;
     
+    uint8_t _sync1;
+    uint8_t _sync2;
+    uint8_t _classNum;
+    uint8_t _ID;
+    uint8_t _lengthLeast;
+    uint8_t _lengthSig;
     uint16_t _mesLength;
 
-    message::Message _mesType;
-    std::vector<uint8_t> _package;
-
+    std::vector<unsigned int> _package;
     // Checksum bytes
     uint8_t _ck_a;
     uint8_t _ck_b;
-
-    void updateCheckSum();
-    void serialize();
 };
