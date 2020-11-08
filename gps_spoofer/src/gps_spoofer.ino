@@ -1,9 +1,17 @@
-// This #include statement was automatically added by the Particle IDE.
 #include <ParticleGeographicLib.h>
 #include "messages.h"
+#include "configs.h"
+#include "math.h"
+#include "random.h"
 
-message::UBX_NAV_PVT makePVT(int lat, int lon, int height, int hMSL, int hAcc, int vAcc, int dopI, int itow);
-message::UBX_NAV_DOP makeDOP(int dopI, int itow);
+// Vicon UDP packet does not have time in it.
+
+message::UBX_NAV_PVT makePVT(int* llh, int gvel, int itow, int theta, int* nedVel, configs config);
+message::UBX_NAV_DOP makeDOP(int itow, configs config);
+int getheadMot(double x1, double y1, double x2, double y2);
+int getgSpeed(double x1, double y1, double x2, double y2, unsigned long dt);
+void getVelNED(int* NED, double x1, double y1, double z1, double x2, double y2, double z2, double theta, unsigned long dt);
+void addVariance(double* llh, configs config);
 
 struct tstruct
 {
@@ -21,9 +29,6 @@ tstruct getTime();
 using namespace GeographicLib;
 using namespace std;
 
-// TODO: Move this into a github project
-// TODO: Make this script use parameters in a .txt file that can be edited with all the parameters in it
-
 int led1 = D0; 
 int led2 = D7;
 
@@ -31,27 +36,33 @@ const uint8_t fix_3d = 0x03;
 const uint8_t fix_2d = 0x02;
 const uint8_t fix_no = 0x00;
 
-int dopI = 111;      // Scaled by a factor of 100 so it can be an int
-
 Geocentric earth(Constants::WGS84_a(), Constants::WGS84_f());
-const double lat0 = 33.7490;
-const double lon0 = -84.3880;
+const double lat0 = 33.7490;    // ATL Capital
+const double lon0 = -84.3880;   // ATL Capital
 
 const double dt = 0.5;    // Seconds
 double vel = 0;
 
-uint8_t numSatellites = 6;
-
 double x = 1;
 double y = 0.75;
 double z = 0.5;
+
+configs configurations[2];
+int config = 1;
+
+double roomAngleOffset = 10;    // radians
 
 LocalCartesian lc(lat0, lon0, 0, earth);
 unsigned long t0 = micros();
 
 void setup() 
 {
+    config1 configuration1;
+    config2 configuration2;
 
+    configurations[0] = configuration1;
+    configurations[1] = configuration2; 
+    
     Serial.begin(115200);
     Serial1.begin(115200, SERIAL_8N1);
     waitFor(Serial.isConnected, 30000);
@@ -63,32 +74,47 @@ void setup()
 
 void loop() 
 {     
-    // TODO: Programatically generate the messages.
-    //  - Can use either vicon accuracy or use the accuracy of the spoofed gps signals
-    //  - Does pAcc and sAcc need to match the DOP?
-    //  - Figure out last set of constants
-    //  - Make it easy to change constants
-    //  - Respond to messages
-    //  - Attach to code that recieves Vicon data
+    unsigned long t1 = micros();
+    unsigned long dt_loop = t1 - t0;
+    t0 = t1;
+
+    // TODO: Check button to change config
     
+    // TODO: Get vicon data
+    double x_old, y_old, z_old;
+
     double lat1, lon1, h;
-  
+    double* llh;  
+
     lc.Reverse(x, y, z, lat1, lon1, h);
-    int lat2 = lat1 * 10000000;
-    int lon2 = lon1 * 10000000;
-    int h2 = h * 1000;
+    llh[0] = lat1;
+    llh[1] = lon1;
+    llh[2] = h;
+    
+    addVariance(llh, configurations[config]);
+    
+    double x_mod, y_mod, z_mod;
+    lc.Forward(llh[0], llh[1], llh[2], x_mod, y_mod, z_mod); // Get the variance adjusted x,y,z
+    
+    int* llhint;
+    llhint[0] = (int)(llh[0] * 10000000);
+    llhint[1] = (int)(llh[1] * 10000000);
+    llhint[2] = (int)(llh[2] * 1000);
     
     int itow = (int)Time.now();
+    
+    int theta = getheadMot(x_old, y_old, x_mod, y_mod);
+    int gvel = getgSpeed(x_old, y_old, x_mod, y_mod, dt_loop);
+    int* nedVel;
+    getVelNED(nedVel, x_old, y_old, z_old, x_mod, y_mod, z_mod, roomAngleOffset, dt_loop);
 
-    message::UBX_NAV_PVT pvt = makePVT(lat2, lon2, h2, 1, 1, 1, dopI, itow);
-    message::UBX_NAV_DOP dop = makeDOP(dopI, itow);
+    message::UBX_NAV_PVT pvt = makePVT(llhint, gvel, itow, theta, nedVel, configurations[config]);
+    message::UBX_NAV_DOP dop = makeDOP(itow, configurations[config]);
     
     sendMessage(message::UBX_NAV_PVT::classNum, message::UBX_NAV_PVT::ID, message::UBX_NAV_PVT::size, &pvt);
     sendMessage(message::UBX_NAV_DOP::classNum, message::UBX_NAV_DOP::ID, message::UBX_NAV_DOP::size, &dop);
     
     heartbeat();
-    
-    x += vel * dt;
 }
 
 void sendMessage(uint8_t classNum, uint8_t id, unsigned int size, void* package)
@@ -158,46 +184,94 @@ tstruct getTime()
     t0 = tn;
     return t; 
 }
-// TODO: Fix function. Pointer points to the wrong side. May need to move this all back to main.
-message::UBX_NAV_PVT makePVT(int lat, int lon, int height, int hMSL, int hAcc, int vAcc, int dopI, int itow)
+
+void addVariance(double* llh, configs config)
+{
+    std::default_random_engine generator;
+    std::normal_distribution<double> distr(0, config.hDOP);
+    double num = distr(generator);
+    llh[0] = llh[0] + num;
+    num = distr(generator);
+    llh[1] = llh[1] + num;    
+
+    std::normal_distribution<double> distr2(0, config.vDOP);
+    num = distr2(generator);
+    llh[2] = llh[2] + num;
+}
+
+int getheadMot(double x1, double y1, double x2, double y2)
+{
+    double dx = x2 - x1;
+    double dy = y2 - y1;
+    double theta = atan2(dy, dx);
+    theta = theta * 100000; // Change the order of magnitude for int conversion
+    return (int)theta;
+}
+
+int getgSpeed(double x1, double y1, double x2, double y2, unsigned long dt)
+{
+    double dx = x2 - x1;
+    double dy = y2 - y1;
+    double dd = sqrt((dx*dx) + (dy*dy));
+    double gvel = 1000*(dd/dt);
+    return (int)gvel;
+}
+
+void getVelNED(int* NED, double x1, double y1, double z1, double x2, double y2, double z2, double theta, unsigned long dt)
+{
+    // Get the x, y, z, vels then apply a roation in the x-y plane by theta to rotate x and y onto North and East
+    double dx = x2 - x1;
+    double dy = y2 - y1;
+    double dz = z2 - z1;
+    
+    double vx = dx/dt;
+    double vy = dy/dt;
+    double vz = dz/dt;
+
+    NED[0] = 1000*(vx*cos(theta) - vy*sin(theta));
+    NED[1] = 1000*(vx*sin(theta) + vy*cos(theta));
+    NED[3] = 1000*vz;
+}
+
+message::UBX_NAV_PVT makePVT(int* llh, int gvel, int itow, int theta, int* nedVel, configs config)
 {
     tstruct t = getTime();
 
     message::UBX_NAV_PVT pvt;
-    pvt.tow = itow;//0x15932D98;
+    pvt.tow = itow;
     
     // Time
-    pvt.year = t.year; //0x07E4;
-    pvt.month = t.month; //0x0A;
-    pvt.day = t.day; //0x16;
-    pvt.hour = t.hour; //0x04;
-    pvt.minute = t.minute; //0x20;
-    pvt.sec = t.sec; //0x1D;
-    pvt.valid = 0x37;   // I believe this is sayig valid magnetic direction, fully resolved, and valid date but not valid time
-    pvt.tAcc = 0x00000011;
+    pvt.year = t.year;
+    pvt.month = t.month;
+    pvt.day = t.day;
+    pvt.hour = t.hour;
+    pvt.minute = t.minute;
+    pvt.sec = t.sec;
+    pvt.valid = 0x37;
+    pvt.tAcc = config.tAcc;
     pvt.nanoSec = 0x0005621D; 
    
     // Flags and fix type
     pvt.fixType = fix_3d;
     pvt.flag1 = 0x01;
     pvt.flag2 = 0x0A;
-    pvt.numSV = numSatellites;
+    pvt.numSV = config.numSatellites;
 
     // Position and Velocity Info
-    pvt.lon = lon;//0xC0C47BBB;
-    pvt.lat = lat;//0x179D1389;
-    pvt.height = height;//0x002B01C4;
-    pvt.hMSL = 0x002B53C2; //hMSL
-    pvt.hAcc = 0x00001F2B; //hAcc
-    pvt.vAcc = 0x00002259; //vAcc
-    pvt.velN = 0x0000002D;
-    pvt.velE = 0xFFFFFFB1;
-    pvt.velD = 0x0000005B;
-    pvt.gSpeed = 0x0000005B;
-    pvt.headMot = 0x0204BD70;
-    pvt.sAcc = 0x00000911;
-    pvt.headAcc = 0x002602B8;
-    pvt.pDOP = dopI;
+    pvt.lon = llh[1];
+    pvt.lat = llh[0];
+    pvt.height = llh[2];
+    pvt.hMSL = llh[2] + 320040; // Add the height that ATL is above the sea in mm
+    pvt.hAcc = config.hAcc;
+    pvt.vAcc = config.vAcc;
+    pvt.velN = nedVel[0];
+    pvt.velE = nedVel[1];
+    pvt.velD = nedVel[2];
+    pvt.gSpeed = gvel;
+    pvt.headMot = theta;
+    pvt.sAcc = config.sAcc;
+    pvt.headAcc = config.hAcc;
+    pvt.pDOP = config.pDOP;
     pvt.flag3 = 0xDE;
 
     // Dont need to touch these
@@ -215,18 +289,18 @@ message::UBX_NAV_PVT makePVT(int lat, int lon, int height, int hMSL, int hAcc, i
     return pvt;
 }
 
-message::UBX_NAV_DOP makeDOP(int dopI, int itow)
+message::UBX_NAV_DOP makeDOP(int itow, configs config)
 {
     message::UBX_NAV_DOP dop;
     
     dop.tow = itow;
-    dop.gDOP = dopI; //218;
-    dop.pDOP = dopI; //0x00CA;
-    dop.tDOP = dopI; //0x0053;
-    dop.vDOP = dopI; //0x00A9;
-    dop.hDOP = dopI; //0x006E;
-    dop.nDOP = dopI; //0x003D;
-    dop.eDOP = dopI; //0x005B;    
+    dop.gDOP = config.gDOP;
+    dop.pDOP = config.pDOP;
+    dop.tDOP = config.tDOP;
+    dop.vDOP = config.vDOP;
+    dop.hDOP = config.hDOP;
+    dop.nDOP = config.nDOP; 
+    dop.eDOP = config.eDOP;
     
     return dop;
 }
