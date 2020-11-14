@@ -1,18 +1,18 @@
 struct configs
 {
-    uint8_t numSatellites;
-    unsigned int hAcc;  
-    unsigned int vAcc;
-    unsigned int sAcc;
-    unsigned int headAcc;
-    unsigned int tAcc;
-    unsigned short pDOP;
-    unsigned short gDOP;
-    unsigned short tDOP;
-    unsigned short vDOP;
-    unsigned short hDOP;
-    unsigned short nDOP;
-    unsigned short eDOP;
+    uint8_t numSatellites = 6;
+    unsigned int hAcc = 100;
+    unsigned int vAcc = 100;
+    unsigned int sAcc = 100;
+    unsigned int headAcc = 1200000;
+    unsigned int tAcc = 1000;
+    unsigned short pDOP = 100;
+    unsigned short gDOP = 100;
+    unsigned short tDOP = 100;
+    unsigned short vDOP = 100;
+    unsigned short hDOP = 100;
+    unsigned short nDOP = 100;
+    unsigned short eDOP = 100;
 
 };
 

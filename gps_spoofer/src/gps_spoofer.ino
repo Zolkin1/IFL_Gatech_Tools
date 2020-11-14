@@ -12,6 +12,8 @@ int getheadMot(double x1, double y1, double x2, double y2);
 int getgSpeed(double x1, double y1, double x2, double y2, unsigned long dt);
 void getVelNED(int* NED, double x1, double y1, double z1, double x2, double y2, double z2, double theta, unsigned long dt);
 void addVariance(double* llh, configs config);
+void parseSerial(char* buffer, int size);
+uint8_t translateASCII(char input);
 
 struct tstruct
 {
@@ -47,8 +49,14 @@ double x = 1;
 double y = 0.75;
 double z = 0.5;
 
-configs configurations[2];
+// Default Configs
+/*configs configurations[2];
 int config = 1;
+int usingCustom;
+*/
+
+// Custom configs
+configs custom;
 
 double roomAngleOffset = 10;    // radians
 
@@ -57,12 +65,15 @@ unsigned long t0 = micros();
 
 void setup() 
 {
+    /*
+    usingCustom = 1;
     config1 configuration1;
     config2 configuration2;
 
     configurations[0] = configuration1;
     configurations[1] = configuration2; 
-    
+    */
+
     Serial.begin(115200);
     Serial1.begin(115200, SERIAL_8N1);
     waitFor(Serial.isConnected, 30000);
@@ -77,9 +88,23 @@ void loop()
     unsigned long t1 = micros();
     unsigned long dt_loop = t1 - t0;
     t0 = t1;
-
-    // TODO: Check button to change config
     
+    int buff_size = 64;
+    int buff_offset = 0;
+    char read_buff[buff_size];
+    // Want to do this at a quiker rate than sending out other stuff 
+    while (Serial.available())
+    {
+        if (buff_offset < buff_size)
+        {
+            read_buff[buff_offset] = Serial.read();
+            buff_offset++;
+        } 
+    }
+    parseSerial(read_buff, buff_size);
+    
+    while(Serial.read() >= 0 ); //Flush the buffer
+
     // TODO: Get vicon data
     double x_old, y_old, z_old;
 
@@ -91,7 +116,7 @@ void loop()
     llh[1] = lon1;
     llh[2] = h;
     
-    addVariance(llh, configurations[config]);
+    addVariance(llh, custom);
     
     double x_mod, y_mod, z_mod;
     lc.Forward(llh[0], llh[1], llh[2], x_mod, y_mod, z_mod); // Get the variance adjusted x,y,z
@@ -108,8 +133,8 @@ void loop()
     int* nedVel;
     getVelNED(nedVel, x_old, y_old, z_old, x_mod, y_mod, z_mod, roomAngleOffset, dt_loop);
 
-    message::UBX_NAV_PVT pvt = makePVT(llhint, gvel, itow, theta, nedVel, configurations[config]);
-    message::UBX_NAV_DOP dop = makeDOP(itow, configurations[config]);
+    message::UBX_NAV_PVT pvt = makePVT(llhint, gvel, itow, theta, nedVel, custom);
+    message::UBX_NAV_DOP dop = makeDOP(itow, custom);
     
     sendMessage(message::UBX_NAV_PVT::classNum, message::UBX_NAV_PVT::ID, message::UBX_NAV_PVT::size, &pvt);
     sendMessage(message::UBX_NAV_DOP::classNum, message::UBX_NAV_DOP::ID, message::UBX_NAV_DOP::size, &dop);
@@ -151,7 +176,7 @@ void sendMessage(uint8_t classNum, uint8_t id, unsigned int size, void* package)
     message[6+(size)] = ck_a;
     message[7+(size)] = ck_b;
     Serial1.write(message,8+size);
-    Serial.write(message, 8+(size));
+    //Serial.write(message, 8+(size));
 }
 
 void heartbeat()
@@ -231,6 +256,49 @@ void getVelNED(int* NED, double x1, double y1, double z1, double x2, double y2, 
     NED[0] = 1000*(vx*cos(theta) - vy*sin(theta));
     NED[1] = 1000*(vx*sin(theta) + vy*cos(theta));
     NED[3] = 1000*vz;
+}
+
+void parseSerial(char* buffer, int size)
+{
+    // Read the first two chars to make sure it is a config change
+    if (size > 4)  // otherwise buffer is too small
+    {
+        if (buffer[0] == 'M' && buffer[1] == 'C')
+        {
+            // Now we know they want config changes
+            // p is pDOP
+            switch (buffer[2])
+            {
+                case 'p':   // Must be given in the same format
+                    int i = 3;
+                    int sum = 0;
+                    while (buffer[i] != '!')
+                    {
+                        i++;
+                    }
+                    int k = 3;
+                    for (int j = i-1; j >= 3; j--)
+                    {
+                        sum += translateASCII(buffer[k]) * pow(10, j-3);
+                        k++;
+                        //unsigned short temp = translateASCII(buffer[3]) * 10;
+                        custom.pDOP = sum;
+                    }
+                    Serial.printf("pDOP: %u \n", custom.pDOP);
+                    break;
+            } 
+        }
+    }
+    for (int i = 0; i < size; i++)
+    {
+        buffer[i] = 0;    
+    }
+}
+
+uint8_t translateASCII(char input)
+{
+    uint8_t output = input - 48;
+    return output;
 }
 
 message::UBX_NAV_PVT makePVT(int* llh, int gvel, int itow, int theta, int* nedVel, configs config)
